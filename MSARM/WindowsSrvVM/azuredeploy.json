@@ -1,0 +1,225 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualMachineName": {
+            "type": "string"
+        },
+        "virtualNetwork": {
+            "type": "string",
+            "allowedValues": ["vn250-1", "vn250-19"],
+            "defaultValue": "vn250-19"
+        },
+        "subnetName": {
+            "type": "string",
+			"defaultValue": "sub-private-vm1"
+        },
+        "addPublicIP": {
+            "type": "string",
+            "allowedValues": ["No","Yes"],
+            "metadata": {
+                "description": "Adding a public IP when it's allowed in the vNet."
+            },			
+            "defaultValue": "No"
+        },
+        "DNS": {
+            "type": "string",
+            "metadata": {
+                "description": "Leave it blank to use default DNS server on the vNet, or put your own DNS IP(s), multiple DNS can be seperated with space"
+            },			
+			"defaultValue": ""
+        },		
+        "priority": {
+            "type": "string",
+			"allowedValues": ["Spot","Regular"],
+			"defaultValue": "Regular"
+        },
+        "OS": {
+            "type": "string",
+			"allowedValues": ["Windows2019","Windows2016","Windows2012R2","Windows2022"]
+        },
+        "patchMode": {
+            "type": "string",
+			"allowedValues": ["AutomaticByOS","Manual"],
+			"defaultValue": "AutomaticByOS"
+        },
+        "osDiskType": {
+            "type": "string",
+			"allowedValues": ["Standard_LRS","StandardSSD_LRS","Premium_LRS"],
+			"defaultValue": "Standard_LRS"
+        },
+        "virtualMachineSize": {
+            "type": "string",
+			"allowedValues": ["Standard_D2s_v4","Standard_E2ds_v4","Standard_D4s_v4","Standard_E4ds_v4","Standard_D8s_v4"],
+            "metadata": {"description":"Following sizes are allowed:<br>Standard_D2s_v4:2CPU 8G RAM,mth 70,spot 9<br>Standard_E2ds_v4:2CPU 16G RAM,mth 105,spot 10<br>Standard_D4s_v4:4CPU 16G RAM,mth 140,spot 17<br>Standard_E4ds_v4:4CPU 32G RAM,mth 210,spot 20<br>Standard_D8s_v4:8CPU 32G RAM,mth 280,spot 35" },
+            "defaultValue":"Standard_D2s_v4"
+        },
+        "adminUsername": {
+            "type": "string",
+			"defaultValue": "sysadm"
+        },
+        "adminPassword": {
+            "type": "secureString"
+        },
+	    "_artifactsLocation": {
+	      "type": "string",
+	      "metadata": {
+	        "description": "Path to the nested templates used in this deployment"
+	      },
+          "defaultValue": "https://sadevtesthub.blob.core.windows.net/private/AD-3VM-Env"
+	    },
+	    "_artifactsLocationSasToken": {
+	      "type": "secureString",
+	      "metadata": {
+	        "description": "SAS token to access artifacts location, if required"
+	      }
+	    }
+    },
+    "variables": {
+		"location": "westus2",
+        "vn250-1": "/subscriptions/482b137d-9da8-4c50-8a34-5d853e66c023/resourcegroups/rg-vn250-1/providers/microsoft.network/virtualnetworks/vn250-1",
+        "vn250-19": "/subscriptions/482b137d-9da8-4c50-8a34-5d853e66c023/resourcegroups/rg-vn250-19/providers/microsoft.network/virtualnetworks/vn250-19",
+        "vnetId": "[variables(parameters('virtualNetwork'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('subnetName'))]",
+		"networkInterfaceName": "[concat( parameters('virtualMachineName'), '-', take(guid(resourceGroup().id,deployment().name),8))]",
+		"publicIPName": "[concat( variables('networkInterfaceName'), '-pip')]",
+		"Windows2019": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2019-Datacenter",
+            "version": "latest"
+	    },
+		"Windows2016": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter",
+            "version": "latest"
+	    },
+		"Windows2012R2": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2012-R2-Datacenter",
+            "version": "latest"
+	    },
+        "Windows2022": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-datacenter",
+            "version": "latest"
+	    },
+        "PostDeployScriptURL": "[concat(parameters('_artifactsLocation'),'/PostDeploy.ps1',parameters('_artifactsLocationSasToken'))]",
+		"PostDeployScript": "[concat('.',substring(parameters('_artifactsLocation'),add(indexOf(parameters('_artifactsLocation'),'/artifacts/'),10)),'/PostDeploy.ps1')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPName')]",
+            "apiVersion": "2020-05-01",
+            "location": "[variables('location')]",
+            "condition": "[and(equals(parameters('addPublicIP'),'Yes'),not(contains(parameters('virtualNetwork'),'vn250-')) ) ]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "name": "[variables('networkInterfaceName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('publicIPName')]"
+			],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress":  "[if( and(equals(parameters('addPublicIP'),'Yes'),not(contains(parameters('virtualNetwork'),'vn250-'))),json( concat('{\"id\":\"',resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName')) ,'\"}') ),json('null') )]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('virtualMachineName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2020-12-01",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('virtualMachineSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('osDiskType')]"
+                        }
+                    },
+                    "imageReference": "[variables( parameters('OS')  )]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachineName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "windowsConfiguration": {
+                        "enableAutomaticUpdates": true,
+                        "provisionVmAgent": true,
+                        "patchSettings": {
+                            "patchMode": "[parameters('patchMode')]"
+                        }
+					}
+                },
+                "priority": "[parameters('priority')]",
+                "evictionPolicy": "[if(equals(parameters('priority'),'Regular'), json('null'),'Deallocate')]",
+                "billingProfile": "[if(equals(parameters('priority'),'Regular'), json('null'),json('{\"maxPrice\": -1}') )]",
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            }
+        },
+        {
+          "name": "[concat(parameters('virtualMachineName'),'/PostDeploy')]",
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "apiVersion": "2018-06-01",
+          "location": "[variables('location')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachineName'))]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.10",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+             "fileUris": [
+                "[variables('PostDeployScriptURL')]"
+              ],
+"commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File ',variables('PostDeployScript'), ' -DNS \"', parameters('DNS'),'\"'  )]"            }
+          }
+        }
+    ],
+    "outputs": {
+        "adminUsername": {
+            "type": "string",
+            "value": "[parameters('adminUsername')]"
+        }
+    }
+}
+

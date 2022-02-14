@@ -1,0 +1,7 @@
+{
+  "itemDisplayName": "Windows Server",
+  "description": "This template creates an Windows Server instance.",
+  "summary": "Deploys an Windows Server instance in Azure.",
+  "githubUsername": "OI Support NA",
+  "dateUpdated": "2021-03-20"
+}

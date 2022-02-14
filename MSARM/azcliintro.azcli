@@ -1,0 +1,8 @@
+$temppath="template.template"
+
+templateFile="{$temppath\lgarm.json}"
+az deployment group create \
+ --name lgtest \
+ --resource-group OneIdentity-NA-IDM2 \
+ --template-file $templateFile
+ 

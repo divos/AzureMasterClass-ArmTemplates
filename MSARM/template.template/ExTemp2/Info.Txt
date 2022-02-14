@@ -1,0 +1,2 @@
+These are exercises done here;
+https://docs.microsoft.com/en-us/learn/modules/modify-azure-resource-manager-template-reuse/7-exercise-use-tags-parameter-files?pivots=powershell

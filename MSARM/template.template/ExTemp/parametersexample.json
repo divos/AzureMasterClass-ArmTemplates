@@ -1,0 +1,71 @@
+{
+"parameters": {
+    "virtualMachineName": {
+        "type": "string"
+    },
+    "virtualNetwork": {
+        "type": "string",
+        "allowedValues": ["vn250-1", "vn250-19"],
+        "defaultValue": "vn250-19"
+    },
+    "subnetName": {
+        "type": "string",
+        "defaultValue": "sub-private-vm1"
+    },
+    "addPublicIP": {
+        "type": "string",
+        "allowedValues": ["No","Yes"],
+        "metadata": {
+            "description": "Adding a public IP when it's allowed in the vNet."
+        },			
+        "defaultValue": "No"
+    },
+    "DNS": {
+        "type": "string",
+        "metadata": {
+            "description": "Leave it blank to use default DNS server on the vNet, or put your own DNS IP."
+        },			
+        "defaultValue": ""
+    },
+    "priority": {
+        "type": "string",
+        "allowedValues": ["Spot","Regular"],
+        "defaultValue": "Regular"
+    },
+    "OS": {
+        "type": "string",
+        "allowedValues": ["RHEL8.5","RHEL8.4","RHEL8.3","RHEL8.2","RHEL8.1","RHEL8.0","RHEL7.9","RHEL7.8","RHEL7.7","RHEL7.6"]
+    },
+    "osDiskType": {
+        "type": "string",
+        "allowedValues": ["Standard_LRS","StandardSSD_LRS","Premium_LRS"],
+        "defaultValue": "Standard_LRS"
+    },
+    "virtualMachineSize": {
+        "type": "string",
+        "allowedValues": ["Standard_D2s_v4","Standard_E2ds_v4","Standard_D4s_v4","Standard_E4ds_v4","Standard_D8s_v4"],
+        "metadata": {"description":"Following sizes are allowed:<br>Standard_D2s_v4:2CPU 8G RAM,mth 70,spot 9<br>Standard_E2ds_v4:2CPU 16G RAM,mth 105,spot 10<br>Standard_D4s_v4:4CPU 16G RAM,mth 140,spot 17<br>Standard_E4ds_v4:4CPU 32G RAM,mth 210,spot 20<br>Standard_D8s_v4:8CPU 32G RAM,mth 280,spot 35" },
+        "defaultValue":"Standard_D2s_v4"
+    },
+    "adminUsername": {
+        "type": "string",
+        "defaultValue": "sysadm"
+    },
+    "adminPassword": {
+        "type": "secureString"
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Path to the nested templates used in this deployment"
+      },
+      "defaultValue": "https://sadevtesthub.blob.core.windows.net/private/AD-3VM-Env"
+    },
+    "_artifactsLocationSasToken": {
+      "type": "secureString",
+      "metadata": {
+        "description": "SAS token to access artifacts location, if required"
+      }
+    }
+}
+}
